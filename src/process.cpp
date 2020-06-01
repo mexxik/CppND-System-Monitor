@@ -5,29 +5,50 @@
 #include <vector>
 
 #include "process.h"
+#include "linux_parser.h"
 
 using std::string;
 using std::to_string;
 using std::vector;
 
+Process::Process(int pid) :pid_(pid) {
+  cpu_utilization_ = CpuUtilization();
+}
+
 // TODO: Return this process's ID
-int Process::Pid() { return 0; }
+int Process::Pid() {
+  return pid_;
+}
 
-// TODO: Return this process's CPU utilization
-float Process::CpuUtilization() { return 0; }
+float Process::CpuUtilization() {
+  std::vector<long> info = LinuxParser::CpuUtilization(pid_);
 
-// TODO: Return the command that generated this process
-string Process::Command() { return string(); }
+  long total_time = info[0] + info[1];
+  total_time += info[2] + info[3];
 
-// TODO: Return this process's memory utilization
-string Process::Ram() { return string(); }
+  float seconds = (float)UpTime();
+  float cpu_utilization = ((total_time / sysconf(_SC_CLK_TCK)) / seconds);
 
-// TODO: Return the user (name) that generated this process
-string Process::User() { return string(); }
+  return cpu_utilization;
+}
 
-// TODO: Return the age of this process (in seconds)
-long int Process::UpTime() { return 0; }
 
-// TODO: Overload the "less than" comparison operator for Process objects
-// REMOVE: [[maybe_unused]] once you define the function
-bool Process::operator<(Process const& a[[maybe_unused]]) const { return true; }
+string Process::Command() {
+  return LinuxParser::Command(pid_);
+}
+
+string Process::Ram() {
+  return LinuxParser::Ram(pid_);
+}
+
+string Process::User() {
+  return LinuxParser::User(pid_);
+}
+
+long int Process::UpTime() {
+  return LinuxParser::UpTime(pid_);
+}
+
+bool Process::operator>(Process const& a) const {
+  return (cpu_utilization_ > a.cpu_utilization_);
+}
